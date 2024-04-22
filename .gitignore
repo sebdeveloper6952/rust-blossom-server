@@ -1,3 +1,4 @@
 /target
 .env
-config.yaml
+config/config.yml
+**.db
