@@ -11,7 +11,7 @@ fmt:
     cargo fmt -- --check
 
 test:
-    cargo test
+    cargo test -- --nocapture
 
 ma NAME:
     sqlx migrate add --source db/migrations -s {{NAME}}
