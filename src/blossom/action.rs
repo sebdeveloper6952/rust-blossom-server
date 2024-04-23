@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Clone)]
 pub enum Action {
     Upload,
     Has,

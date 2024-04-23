@@ -2821,11 +2821,13 @@ version = "0.0.1"
 dependencies = [
  "actix-web",
  "anyhow",
+ "base64 0.22.0",
  "chrono",
  "claims",
  "config",
  "dotenvy",
  "fake",
+ "futures-util",
  "linkify",
  "nostr",
  "nostr-sdk",
