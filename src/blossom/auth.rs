@@ -2,10 +2,14 @@ use crate::blossom::action::Action;
 use nostr::event::Event;
 use nostr::{Alphabet, Kind, SingleLetterTag, TagKind, Timestamp};
 use std::str::FromStr;
+use tracing::instrument;
 
 /// logic to actually validate if an event is a valid blossom authentication event
+#[instrument(skip(event, action))]
 pub fn is_auth_event_valid(event: &Event, action: Action) -> Result<(), String> {
-    // TODO: validate event signature
+    if let Err(_) = event.verify() {
+        return Err("event signature verification failed".into());
+    }
 
     if event.kind() != Kind::Custom(24242) {
         return Err("kind must be 24242".into());
@@ -94,7 +98,6 @@ pub fn is_auth_event_valid(event: &Event, action: Action) -> Result<(), String> 
 #[cfg(test)]
 mod tests {
     use super::is_auth_event_valid;
-    use super::AuthMiddlewareFactory;
     use crate::blossom::action::Action;
     use nostr::prelude::*;
     use nostr_sdk::prelude::*;

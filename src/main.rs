@@ -8,7 +8,6 @@ use rust_blossom_server::config::get_config;
 use rust_blossom_server::telemetry::init_tracer;
 use sqlx::sqlite::SqlitePoolOptions;
 use std::net::TcpListener;
-use tracing::trace;
 use tracing_actix_web::TracingLogger;
 
 #[tokio::main]
@@ -42,7 +41,6 @@ async fn main() -> Result<()> {
     .run()
     .await?;
 
-    trace!("exiting, goodbye!");
     opentelemetry::global::shutdown_tracer_provider();
     Ok(())
 }

@@ -58,7 +58,6 @@ where
 #[cfg(test)]
 mod tests {
     use super::VerifyBodySizeMiddlewareFactory;
-    use crate::blossom::action::Action;
     use ::base64::prelude::*;
     use actix_web::web;
     use actix_web::App;
@@ -99,7 +98,6 @@ mod tests {
             .to_request();
         let resp = actix_web::test::call_service(&app, req).await;
 
-        println!("status: {}", resp.status());
         assert!(resp.status().is_success());
     }
 }

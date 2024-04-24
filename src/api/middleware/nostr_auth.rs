@@ -142,7 +142,6 @@ mod tests {
             .to_request();
         let resp = actix_web::test::call_service(&app, req).await;
 
-        println!("status: {}", resp.status());
         assert!(resp.status().is_success());
     }
 }
