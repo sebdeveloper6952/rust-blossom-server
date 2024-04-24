@@ -1,8 +1,9 @@
 use actix_web::{web, App, HttpServer};
 use nostr::prelude::*;
 use nostr_sdk::prelude::*;
+use rust_blossom_server::api::upload;
+use rust_blossom_server::api::AuthMiddlewareFactory;
 use rust_blossom_server::blossom::action::Action;
-use rust_blossom_server::blossom::auth::AuthMiddlewareFactory;
 use rust_blossom_server::config::get_config;
 use rust_blossom_server::telemetry::init_tracer;
 use sqlx::sqlite::SqlitePoolOptions;
@@ -26,11 +27,15 @@ async fn main() -> Result<()> {
     sqlx::migrate!().run(&db_pool).await?;
     let data_db_pool = web::Data::new(db_pool);
 
-    let listener = TcpListener::bind("127.0.0.1:8000")?;
-    let server = HttpServer::new(move || {
+    let listener = TcpListener::bind(format!("{}:{}", cfg.host, cfg.port))?;
+    let _server = HttpServer::new(move || {
         App::new()
             .wrap(TracingLogger::default())
-            .wrap(AuthMiddlewareFactory::new(Action::Upload))
+            .service(
+                web::resource("/upload")
+                    .wrap(AuthMiddlewareFactory::new(Action::Upload))
+                    .to(upload),
+            )
             .app_data(data_db_pool.clone())
     })
     .listen(listener)?
