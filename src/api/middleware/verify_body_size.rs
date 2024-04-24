@@ -1,67 +1,33 @@
-use crate::blossom::action::Action;
-use crate::blossom::auth::is_auth_event_valid;
-use ::base64::prelude::*;
 use actix_web::{
-    body::EitherBody,
-    dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform},
-    Error, HttpResponse,
+    body::MessageBody,
+    dev::{ServiceRequest, ServiceResponse},
+    web::Bytes,
+    Error, HttpMessage,
 };
-use futures_util::future::{FutureExt, LocalBoxFuture};
-use nostr::event::Event;
-use nostr_sdk::JsonUtil;
-use std::future::{ready, Ready};
+use actix_web_lab::middleware::Next;
 
-pub struct VerifyBodySizeMiddleware<S> {
-    service: S,
-}
-
-impl<S, B> Service<ServiceRequest> for VerifyBodySizeMiddleware<S>
-where
-    S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error>,
-    S::Future: 'static,
-    B: 'static,
-{
-    type Response = ServiceResponse<EitherBody<B>>;
-    type Error = Error;
-    type Future = LocalBoxFuture<'static, Result<Self::Response, Self::Error>>;
-
-    forward_ready!(service);
-
-    fn call(&self, req: ServiceRequest) -> Self::Future {
-        let fut = self.service.call(req);
-        Box::pin(async move {
-            let res = fut.await?;
-            Ok(res.map_into_left_body())
-        })
+pub async fn verify_body_middleware(
+    mut req: ServiceRequest,
+    next: Next<impl MessageBody>,
+) -> Result<ServiceResponse<impl MessageBody>, Error> {
+    match req.extract::<Bytes>().await {
+        Ok(bytes) => {
+            req.extensions_mut().insert(bytes);
+        }
+        Err(_) => {}
     }
-}
 
-pub struct VerifyBodySizeMiddlewareFactory {}
-
-impl<S, B> Transform<S, ServiceRequest> for VerifyBodySizeMiddlewareFactory
-where
-    S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error> + 'static,
-    S::Future: 'static,
-    B: 'static,
-{
-    type Response = ServiceResponse<EitherBody<B>>;
-    type Error = Error;
-    type InitError = ();
-    type Transform = VerifyBodySizeMiddleware<S>;
-    type Future = Ready<Result<Self::Transform, Self::InitError>>;
-
-    fn new_transform(&self, service: S) -> Self::Future {
-        ready(Ok(VerifyBodySizeMiddleware { service }))
-    }
+    next.call(req).await
 }
 
 #[cfg(test)]
 mod tests {
-    use super::VerifyBodySizeMiddlewareFactory;
+    use super::verify_body_middleware;
     use ::base64::prelude::*;
     use actix_web::web;
     use actix_web::App;
     use actix_web::HttpResponse;
+    use actix_web_lab::middleware::from_fn;
     use nostr::prelude::*;
     use nostr_sdk::prelude::*;
     use std::time::Duration;
@@ -87,7 +53,7 @@ mod tests {
         let app = actix_web::test::init_service(
             App::new().service(
                 web::resource("/")
-                    .wrap(VerifyBodySizeMiddlewareFactory {})
+                    .wrap(from_fn(verify_body_middleware))
                     .route(web::get().to(HttpResponse::Ok)),
             ),
         )

@@ -1,7 +1,10 @@
+use actix_web::guard;
 use actix_web::{web, App, HttpServer};
+use actix_web_lab::middleware::from_fn;
 use nostr::prelude::*;
 use nostr_sdk::prelude::*;
 use rust_blossom_server::api::upload;
+use rust_blossom_server::api::verify_body_middleware;
 use rust_blossom_server::api::AuthMiddlewareFactory;
 use rust_blossom_server::blossom::action::Action;
 use rust_blossom_server::config::get_config;
@@ -32,7 +35,9 @@ async fn main() -> Result<()> {
             .wrap(TracingLogger::default())
             .service(
                 web::resource("/upload")
+                    .guard(guard::Put())
                     .wrap(AuthMiddlewareFactory::new(Action::Upload))
+                    .wrap(from_fn(verify_body_middleware))
                     .to(upload),
             )
             .app_data(data_db_pool.clone())
