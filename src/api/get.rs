@@ -2,7 +2,7 @@ use actix_web::{http::StatusCode, web, HttpResponse, ResponseError};
 use sqlx::SqlitePool;
 use tracing::instrument;
 
-struct GetBlob {
+pub struct GetBlob {
     blob: Vec<u8>,
     r#type: String,
 }
@@ -54,7 +54,7 @@ pub async fn get_with_ext(
         .body(blob.blob))
 }
 
-async fn db_get_blob(db: &SqlitePool, hash: &str) -> Result<GetBlob, sqlx::Error> {
+pub async fn db_get_blob(db: &SqlitePool, hash: &str) -> Result<GetBlob, sqlx::Error> {
     let blob = sqlx::query_as!(
         GetBlob,
         r#"
