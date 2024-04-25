@@ -7,16 +7,13 @@ use actix_web::{
 };
 use actix_web_lab::middleware::Next;
 
-#[derive(Debug)]
-pub struct PayloadSize(pub usize);
-
 pub async fn extract_payload_size_middleware(
     mut req: ServiceRequest,
     next: Next<impl MessageBody>,
 ) -> Result<ServiceResponse<impl MessageBody>, Error> {
     match req.extract::<Bytes>().await {
         Ok(bytes) => {
-            req.extensions_mut().insert(PayloadSize(bytes.len()));
+            req.extensions_mut().insert(bytes);
         }
         Err(err) => return Err(ErrorUnauthorized(err)),
     }

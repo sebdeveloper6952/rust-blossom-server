@@ -1,6 +1,7 @@
+use crate::blossom::action::Action;
 use crate::blossom::auth::is_auth_event_valid;
-use crate::{api::PayloadSize, blossom::action::Action};
 use ::base64::prelude::*;
+use actix_web::web::Bytes;
 use actix_web::{
     body::EitherBody,
     dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform},
@@ -31,7 +32,7 @@ where
     fn call(&self, req: ServiceRequest) -> Self::Future {
         let srv_req = ServiceRequest::from_request(req.request().clone());
         let req_ext = srv_req.extensions();
-        let payload_size = req_ext.get::<PayloadSize>();
+        let payload_size = req_ext.get::<Bytes>();
 
         if payload_size.is_none() {
             let http_res = HttpResponse::InternalServerError().finish();
@@ -68,7 +69,7 @@ where
         match is_auth_event_valid(
             &event.unwrap(),
             self.action.clone(),
-            payload_size.unwrap().0,
+            payload_size.unwrap().len(),
         ) {
             Ok(_) => {}
             Err(e) => return error_out(&e),
