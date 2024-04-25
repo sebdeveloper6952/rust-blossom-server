@@ -1,0 +1,32 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        SELECT pubkey, blob, type\n        FROM blobs\n        WHERE hash = $1\n        LIMIT 1\n    ",
+  "describe": {
+    "columns": [
+      {
+        "name": "pubkey",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "blob",
+        "ordinal": 1,
+        "type_info": "Blob"
+      },
+      {
+        "name": "type",
+        "ordinal": 2,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "b313eaba2583ad4c0f197b7c64f71b6291656fbb3ca4d6c5b0b00cd47762e063"
+}

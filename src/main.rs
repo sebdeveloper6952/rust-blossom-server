@@ -5,7 +5,7 @@ use nostr::prelude::*;
 use nostr_sdk::prelude::*;
 use rust_blossom_server::api::AuthMiddlewareFactory;
 use rust_blossom_server::api::{
-    extract_payload_size_middleware, get, get_with_ext, has, has_with_ext, upload,
+    delete, extract_payload_size_middleware, get, get_with_ext, has, has_with_ext, upload,
 };
 use rust_blossom_server::blossom::action::Action;
 use rust_blossom_server::config::get_config;
@@ -40,6 +40,12 @@ async fn main() -> Result<()> {
                     .wrap(AuthMiddlewareFactory::new(Action::Upload))
                     .wrap(from_fn(extract_payload_size_middleware))
                     .to(upload),
+            )
+            .service(
+                web::resource("/delete")
+                    .guard(guard::Delete())
+                    .wrap(AuthMiddlewareFactory::new(Action::Upload))
+                    .to(delete),
             )
             .service(
                 web::resource("/{hash}.{ext}")

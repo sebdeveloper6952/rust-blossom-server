@@ -3,8 +3,9 @@ use sqlx::SqlitePool;
 use tracing::instrument;
 
 pub struct GetBlob {
-    blob: Vec<u8>,
-    r#type: String,
+    pub pubkey: String,
+    pub blob: Vec<u8>,
+    pub r#type: String,
 }
 
 #[derive(thiserror::Error, Debug)]
@@ -58,7 +59,7 @@ pub async fn db_get_blob(db: &SqlitePool, hash: &str) -> Result<GetBlob, sqlx::E
     let blob = sqlx::query_as!(
         GetBlob,
         r#"
-        SELECT blob, type
+        SELECT pubkey, blob, type
         FROM blobs
         WHERE hash = $1
         LIMIT 1
