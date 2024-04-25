@@ -3,9 +3,9 @@ use actix_web::{web, App, HttpServer};
 use actix_web_lab::middleware::from_fn;
 use nostr::prelude::*;
 use nostr_sdk::prelude::*;
-use rust_blossom_server::api::extract_payload_size_middleware;
-use rust_blossom_server::api::upload;
 use rust_blossom_server::api::AuthMiddlewareFactory;
+use rust_blossom_server::api::{extract_payload_size_middleware, get};
+use rust_blossom_server::api::{get_with_ext, upload};
 use rust_blossom_server::blossom::action::Action;
 use rust_blossom_server::config::get_config;
 use rust_blossom_server::telemetry::init_tracer;
@@ -40,6 +40,12 @@ async fn main() -> Result<()> {
                     .wrap(from_fn(extract_payload_size_middleware))
                     .to(upload),
             )
+            .service(
+                web::resource("/{hash}.{ext}")
+                    .guard(guard::Get())
+                    .to(get_with_ext),
+            )
+            .service(web::resource("/{hash}").guard(guard::Get()).to(get))
             .app_data(data_db_pool.clone())
     })
     .listen(listener)?

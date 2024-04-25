@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        SELECT blob, type\n        FROM blobs\n        WHERE hash = $1\n        LIMIT 1\n    ",
+  "describe": {
+    "columns": [
+      {
+        "name": "blob",
+        "ordinal": 0,
+        "type_info": "Blob"
+      },
+      {
+        "name": "type",
+        "ordinal": 1,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "5a7f8b772149ba5f4961add10fceb88f77351be66ee97c185d6f71103ab17751"
+}
