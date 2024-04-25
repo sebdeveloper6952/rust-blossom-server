@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        INSERT INTO blobs (pubkey, hash, blob, type, size, created)\n        VALUES ($1, $2, $3, $4, $5, $6)\n        ON CONFLICT (hash) DO NOTHING\n    ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 6
+    },
+    "nullable": []
+  },
+  "hash": "3e5e60e20e14eac6d4c10461eb13a72767c6ce9700f3f36126d998af938e4f2b"
+}
