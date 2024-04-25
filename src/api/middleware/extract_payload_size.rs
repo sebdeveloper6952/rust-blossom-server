@@ -1,20 +1,24 @@
 use actix_web::{
     body::MessageBody,
     dev::{ServiceRequest, ServiceResponse},
+    error::ErrorUnauthorized,
     web::Bytes,
     Error, HttpMessage,
 };
 use actix_web_lab::middleware::Next;
 
-pub async fn verify_body_middleware(
+#[derive(Debug)]
+pub struct PayloadSize(pub usize);
+
+pub async fn extract_payload_size_middleware(
     mut req: ServiceRequest,
     next: Next<impl MessageBody>,
 ) -> Result<ServiceResponse<impl MessageBody>, Error> {
     match req.extract::<Bytes>().await {
         Ok(bytes) => {
-            req.extensions_mut().insert(bytes);
+            req.extensions_mut().insert(PayloadSize(bytes.len()));
         }
-        Err(_) => {}
+        Err(err) => return Err(ErrorUnauthorized(err)),
     }
 
     next.call(req).await
@@ -22,7 +26,7 @@ pub async fn verify_body_middleware(
 
 #[cfg(test)]
 mod tests {
-    use super::verify_body_middleware;
+    use super::extract_payload_size_middleware;
     use ::base64::prelude::*;
     use actix_web::web;
     use actix_web::App;
@@ -53,7 +57,7 @@ mod tests {
         let app = actix_web::test::init_service(
             App::new().service(
                 web::resource("/")
-                    .wrap(from_fn(verify_body_middleware))
+                    .wrap(from_fn(extract_payload_size_middleware))
                     .route(web::get().to(HttpResponse::Ok)),
             ),
         )

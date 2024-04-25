@@ -6,7 +6,11 @@ use tracing::instrument;
 
 /// logic to actually validate if an event is a valid blossom authentication event
 #[instrument(skip(event, action))]
-pub fn is_auth_event_valid(event: &Event, action: Action) -> Result<(), String> {
+pub fn is_auth_event_valid(
+    event: &Event,
+    action: Action,
+    payload_size: usize,
+) -> Result<(), String> {
     if let Err(_) = event.verify() {
         return Err("event signature verification failed".into());
     }
@@ -66,7 +70,11 @@ pub fn is_auth_event_valid(event: &Event, action: Action) -> Result<(), String> 
             Some(tag) => {
                 if let Some(tag_value) = tag.content() {
                     match tag_value.to_string().parse::<usize>() {
-                        Ok(_) => {}
+                        Ok(tag_size_value) => {
+                            if tag_size_value != payload_size {
+                                return Err("payload size does not match size tag".into());
+                            }
+                        }
                         _ => return Err("invalid size".into()),
                     }
                 }
@@ -118,7 +126,7 @@ mod tests {
         .to_event(&keys)
         .unwrap();
 
-        let result = is_auth_event_valid(&auth_event, Action::Upload);
+        let result = is_auth_event_valid(&auth_event, Action::Upload, 36194);
 
         assert!(result.is_ok());
     }
@@ -138,7 +146,7 @@ mod tests {
         .to_event(&keys)
         .unwrap();
 
-        let result = is_auth_event_valid(&auth_event, Action::Upload);
+        let result = is_auth_event_valid(&auth_event, Action::Upload, 36194);
 
         assert!(result.is_err());
     }
@@ -157,7 +165,7 @@ mod tests {
         .to_event(&keys)
         .unwrap();
 
-        let result = is_auth_event_valid(&auth_event, Action::Upload);
+        let result = is_auth_event_valid(&auth_event, Action::Upload, 36194);
 
         assert!(result.is_err());
     }
@@ -177,7 +185,7 @@ mod tests {
         .to_event(&keys)
         .unwrap();
 
-        let result = is_auth_event_valid(&auth_event, Action::Upload);
+        let result = is_auth_event_valid(&auth_event, Action::Upload, 36194);
 
         assert!(result.is_err());
     }
@@ -197,7 +205,7 @@ mod tests {
         .to_event(&keys)
         .unwrap();
 
-        let result = is_auth_event_valid(&auth_event, Action::Upload);
+        let result = is_auth_event_valid(&auth_event, Action::Upload, 36194);
 
         assert!(result.is_err());
     }

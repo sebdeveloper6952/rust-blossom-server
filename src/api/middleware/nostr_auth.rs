@@ -1,10 +1,10 @@
-use crate::blossom::action::Action;
 use crate::blossom::auth::is_auth_event_valid;
+use crate::{api::PayloadSize, blossom::action::Action};
 use ::base64::prelude::*;
 use actix_web::{
     body::EitherBody,
     dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform},
-    Error, HttpResponse,
+    Error, HttpMessage, HttpResponse,
 };
 use futures_util::future::{FutureExt, LocalBoxFuture};
 use nostr::event::Event;
@@ -29,6 +29,16 @@ where
     forward_ready!(service);
 
     fn call(&self, req: ServiceRequest) -> Self::Future {
+        let srv_req = ServiceRequest::from_request(req.request().clone());
+        let req_ext = srv_req.extensions();
+        let payload_size = req_ext.get::<PayloadSize>();
+
+        if payload_size.is_none() {
+            let http_res = HttpResponse::InternalServerError().finish();
+            let res = ServiceResponse::new(req.request().clone(), http_res);
+            return (async move { Ok(res.map_into_right_body()) }).boxed_local();
+        }
+
         let error_out = |msg: &str| -> Self::Future {
             let http_res = HttpResponse::Unauthorized().json(serde_json::json!({"message": msg}));
             let res = ServiceResponse::new(req.request().clone(), http_res);
@@ -55,7 +65,11 @@ where
             return error_out("invalid Auth event: failed json decoding");
         }
 
-        match is_auth_event_valid(&event.unwrap(), self.action.clone()) {
+        match is_auth_event_valid(
+            &event.unwrap(),
+            self.action.clone(),
+            payload_size.unwrap().0,
+        ) {
             Ok(_) => {}
             Err(e) => return error_out(&e),
         }
