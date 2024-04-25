@@ -1,4 +1,4 @@
-use actix_web::{web, HttpResponse};
+use actix_web::{http::StatusCode, web, HttpResponse, ResponseError};
 use sqlx::SqlitePool;
 use tracing::instrument;
 
@@ -7,13 +7,32 @@ struct GetBlob {
     r#type: String,
 }
 
+#[derive(thiserror::Error, Debug)]
+pub enum GetBlobError {
+    #[error("file not found")]
+    NotFoundError,
+    #[error("database error")]
+    DbError(#[from] sqlx::Error),
+}
+
+impl ResponseError for GetBlobError {
+    fn status_code(&self) -> StatusCode {
+        match self {
+            GetBlobError::NotFoundError => StatusCode::NOT_FOUND,
+            GetBlobError::DbError(_) => StatusCode::INTERNAL_SERVER_ERROR,
+        }
+    }
+}
+
 #[instrument(skip(hash, db))]
 pub async fn get(
     hash: web::Path<String>,
     db: web::Data<SqlitePool>,
 ) -> Result<HttpResponse, actix_web::Error> {
-    // TODO: error handling
-    let blob = db_get_blob(&db, &hash).await.unwrap();
+    let blob = db_get_blob(&db, &hash).await.map_err(|e| match e {
+        sqlx::Error::RowNotFound => GetBlobError::NotFoundError,
+        _ => GetBlobError::DbError(e),
+    })?;
 
     Ok(HttpResponse::Ok()
         .insert_header(("Content-Type", blob.r#type))
@@ -25,8 +44,10 @@ pub async fn get_with_ext(
     path: web::Path<(String, String)>,
     db: web::Data<SqlitePool>,
 ) -> Result<HttpResponse, actix_web::Error> {
-    // TODO: error handling
-    let blob = db_get_blob(&db, &path.0).await.unwrap();
+    let blob = db_get_blob(&db, &path.0).await.map_err(|e| match e {
+        sqlx::Error::RowNotFound => GetBlobError::NotFoundError,
+        _ => GetBlobError::DbError(e),
+    })?;
 
     Ok(HttpResponse::Ok()
         .insert_header(("Content-Type", blob.r#type))
