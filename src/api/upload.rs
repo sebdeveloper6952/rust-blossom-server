@@ -28,6 +28,7 @@ impl ResponseError for UploadError {
 
 #[instrument(skip(payload, db))]
 pub async fn upload(
+    pubkey: ReqData<nostr::PublicKey>,
     payload: ReqData<Bytes>,
     db: Data<SqlitePool>,
 ) -> Result<HttpResponse, UploadError> {
@@ -41,7 +42,15 @@ pub async fn upload(
     };
     let hash = digest(&bytes_vec);
 
-    let _ = db_insert_blob(&db, &hash, &bytes_vec, &mime_type, payload_size).await?;
+    let _ = db_insert_blob(
+        &db,
+        &pubkey.to_string(),
+        &hash,
+        &bytes_vec,
+        &mime_type,
+        payload_size,
+    )
+    .await?;
 
     Ok(HttpResponse::Ok()
         .json(serde_json::json!({"size": payload_size, "hash": hash, "type": mime_type})))
@@ -49,6 +58,7 @@ pub async fn upload(
 
 async fn db_insert_blob(
     db: &SqlitePool,
+    pubkey: &str,
     hash: &str,
     bytes_vec: &[u8],
     mime_type: &str,
@@ -61,7 +71,7 @@ async fn db_insert_blob(
         VALUES ($1, $2, $3, $4, $5, $6)
         ON CONFLICT (hash) DO NOTHING
     "#,
-        "<pubkey>",
+        pubkey,
         hash,
         bytes_vec,
         mime_type,

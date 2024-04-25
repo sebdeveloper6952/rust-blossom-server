@@ -31,7 +31,7 @@ where
 
     fn call(&self, req: ServiceRequest) -> Self::Future {
         let srv_req = ServiceRequest::from_request(req.request().clone());
-        let req_ext = srv_req.extensions();
+        let mut req_ext = srv_req.extensions_mut();
         let payload_size = req_ext.get::<Bytes>();
 
         if payload_size.is_none() {
@@ -61,19 +61,18 @@ where
             return error_out("invalid Auth event: failed base64 decoding");
         }
 
-        let event = Event::from_json(base64_decoded_event.unwrap());
-        if event.is_err() {
+        let event_result = Event::from_json(base64_decoded_event.unwrap());
+        if event_result.is_err() {
             return error_out("invalid Auth event: failed json decoding");
         }
+        let event = event_result.unwrap();
 
-        match is_auth_event_valid(
-            &event.unwrap(),
-            self.action.clone(),
-            payload_size.unwrap().len(),
-        ) {
+        match is_auth_event_valid(&event, self.action.clone(), payload_size.unwrap().len()) {
             Ok(_) => {}
             Err(e) => return error_out(&e),
         }
+
+        req_ext.insert(event.pubkey);
 
         let fut = self.service.call(req);
         Box::pin(async move {
