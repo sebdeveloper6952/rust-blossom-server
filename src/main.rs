@@ -6,7 +6,8 @@ use nostr::prelude::*;
 use nostr_sdk::prelude::*;
 use rust_blossom_server::api::AuthMiddlewareFactory;
 use rust_blossom_server::api::{
-    delete, extract_payload_size_middleware, get, get_with_ext, has, has_with_ext, list, upload,
+    delete, extract_payload_size_middleware, get, get_with_ext, has, has_with_ext, index_file,
+    list, upload,
 };
 use rust_blossom_server::blossom::Action;
 use rust_blossom_server::config::get_config;
@@ -44,6 +45,7 @@ async fn main() -> Result<()> {
         App::new()
             .wrap(cors)
             .wrap(TracingLogger::default())
+            .route("/", web::get().to(index_file))
             .service(
                 web::resource("/upload")
                     .guard(guard::Put())
