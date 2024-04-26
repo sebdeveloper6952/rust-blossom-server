@@ -1,27 +1,8 @@
+use crate::api::GetBlob;
+use crate::{blossom::BlobDescriptor, config::Config};
 use actix_web::{http::StatusCode, web, HttpResponse, ResponseError};
-use serde::Serialize;
 use sqlx::SqlitePool;
 use tracing::instrument;
-
-use crate::config::Config;
-
-#[derive(Serialize)]
-pub struct BlobDescriptor {
-    pub pubkey: String,
-    pub hash: String,
-    pub url: String,
-    pub r#type: String,
-    pub size: i64,
-    pub created: i64,
-}
-
-pub struct DbBlob {
-    pub pubkey: String,
-    pub hash: String,
-    pub r#type: String,
-    pub size: i64,
-    pub created: i64,
-}
 
 #[derive(thiserror::Error, Debug)]
 pub enum ListBlobsError {
@@ -66,11 +47,11 @@ pub async fn list(
     Ok(HttpResponse::Ok().json(full_blobs))
 }
 
-pub async fn db_get_blobs(db: &SqlitePool, pubkey: &str) -> Result<Vec<DbBlob>, sqlx::Error> {
+pub async fn db_get_blobs(db: &SqlitePool, pubkey: &str) -> Result<Vec<GetBlob>, sqlx::Error> {
     let blobs = sqlx::query_as!(
-        DbBlob,
+        GetBlob,
         r#"
-        SELECT pubkey, hash, type, size, created
+        SELECT * 
         FROM blobs
         WHERE pubkey = $1
     "#,

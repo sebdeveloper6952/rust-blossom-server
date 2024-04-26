@@ -1,3 +1,7 @@
+use crate::{
+    api::{db_get_blob, GetBlob},
+    blossom::BlobDescriptor,
+};
 use actix_web::{
     http::StatusCode,
     web::{Bytes, Data, ReqData},
@@ -8,6 +12,8 @@ use sha256::digest;
 use sqlx::{sqlite::SqliteQueryResult, SqlitePool};
 use std::convert::TryFrom;
 use tracing::instrument;
+
+use crate::config::Config;
 
 #[derive(thiserror::Error, Debug)]
 pub enum UploadError {
@@ -26,11 +32,12 @@ impl ResponseError for UploadError {
     }
 }
 
-#[instrument(skip(payload, db))]
+#[instrument(skip(payload, db, cfg))]
 pub async fn upload(
     pubkey: ReqData<nostr::PublicKey>,
     payload: ReqData<Bytes>,
     db: Data<SqlitePool>,
+    cfg: Data<Config>,
 ) -> Result<HttpResponse, UploadError> {
     let payload_size =
         i32::try_from(payload.len()).map_err(|_| UploadError::ExtractPayloadSizeError)?;
@@ -42,7 +49,21 @@ pub async fn upload(
     };
     let hash = digest(&bytes_vec);
 
-    let _ = db_insert_blob(
+    match db_get_blob(&db, &hash).await {
+        Ok(blob) => {
+            return Ok(HttpResponse::Ok().json(BlobDescriptor {
+                pubkey: blob.pubkey,
+                hash: String::from(&hash),
+                url: format!("{}/{}", cfg.cdn.base_url, &hash),
+                r#type: blob.r#type,
+                size: blob.size,
+                created: blob.created,
+            }))
+        }
+        _ => {}
+    };
+
+    let blob = db_insert_blob(
         &db,
         &pubkey.to_string(),
         &hash,
@@ -52,10 +73,14 @@ pub async fn upload(
     )
     .await?;
 
-    // TODO: must return BlobDescriptor here
-
-    Ok(HttpResponse::Ok()
-        .json(serde_json::json!({"size": payload_size, "hash": hash, "type": mime_type})))
+    Ok(HttpResponse::Ok().json(BlobDescriptor {
+        pubkey: blob.pubkey,
+        hash: blob.hash,
+        url: format!("{}/{}", cfg.cdn.base_url, &hash),
+        r#type: blob.r#type,
+        size: blob.size,
+        created: blob.created,
+    }))
 }
 
 async fn db_insert_blob(
@@ -65,13 +90,16 @@ async fn db_insert_blob(
     bytes_vec: &[u8],
     mime_type: &str,
     payload_size: i32,
-) -> Result<SqliteQueryResult, sqlx::Error> {
-    let now = Utc::now();
-    sqlx::query!(
+) -> Result<GetBlob, sqlx::Error> {
+    let now = Utc::now().timestamp();
+
+    sqlx::query_as!(
+        GetBlob,
         r#"
         INSERT INTO blobs (pubkey, hash, blob, type, size, created)
         VALUES ($1, $2, $3, $4, $5, $6)
         ON CONFLICT (hash) DO NOTHING
+        RETURNING *;
     "#,
         pubkey,
         hash,
@@ -80,6 +108,6 @@ async fn db_insert_blob(
         payload_size,
         now,
     )
-    .execute(db)
+    .fetch_one(db)
     .await
 }

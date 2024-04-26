@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "\n        SELECT pubkey, hash, type, size, created\n        FROM blobs\n        WHERE pubkey = $1\n    ",
+  "query": "\n        INSERT INTO blobs (pubkey, hash, blob, type, size, created)\n        VALUES ($1, $2, $3, $4, $5, $6)\n        ON CONFLICT (hash) DO NOTHING\n        RETURNING *;\n    ",
   "describe": {
     "columns": [
       {
@@ -14,25 +14,31 @@
         "type_info": "Text"
       },
       {
-        "name": "type",
+        "name": "blob",
         "ordinal": 2,
+        "type_info": "Blob"
+      },
+      {
+        "name": "type",
+        "ordinal": 3,
         "type_info": "Text"
       },
       {
         "name": "size",
-        "ordinal": 3,
+        "ordinal": 4,
         "type_info": "Int64"
       },
       {
         "name": "created",
-        "ordinal": 4,
+        "ordinal": 5,
         "type_info": "Int64"
       }
     ],
     "parameters": {
-      "Right": 1
+      "Right": 6
     },
     "nullable": [
+      false,
       false,
       false,
       false,
@@ -40,5 +46,5 @@
       false
     ]
   },
-  "hash": "8997c18d3a61e7aa3e9c7e87131c7c11892f1b12536a694e50d8ada52b725eb2"
+  "hash": "af08a7e8f34f9f6eb1db0b73c15cffc8c87a3dc17d041f04f018b30c787c0299"
 }

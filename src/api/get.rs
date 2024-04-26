@@ -1,12 +1,7 @@
+use crate::api::GetBlob;
 use actix_web::{http::StatusCode, web, HttpResponse, ResponseError};
 use sqlx::SqlitePool;
 use tracing::instrument;
-
-pub struct GetBlob {
-    pub pubkey: String,
-    pub blob: Vec<u8>,
-    pub r#type: String,
-}
 
 #[derive(thiserror::Error, Debug)]
 pub enum GetBlobError {
@@ -59,7 +54,7 @@ pub async fn db_get_blob(db: &SqlitePool, hash: &str) -> Result<GetBlob, sqlx::E
     let blob = sqlx::query_as!(
         GetBlob,
         r#"
-        SELECT pubkey, blob, type
+        SELECT *
         FROM blobs
         WHERE hash = $1
         LIMIT 1
