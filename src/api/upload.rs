@@ -9,7 +9,7 @@ use actix_web::{
 };
 use chrono::Utc;
 use sha256::digest;
-use sqlx::{sqlite::SqliteQueryResult, SqlitePool};
+use sqlx::SqlitePool;
 use std::convert::TryFrom;
 use tracing::instrument;
 
