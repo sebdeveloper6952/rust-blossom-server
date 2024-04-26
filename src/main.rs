@@ -1,3 +1,4 @@
+use actix_cors::Cors;
 use actix_web::guard;
 use actix_web::{web, App, HttpServer};
 use actix_web_lab::middleware::from_fn;
@@ -32,7 +33,14 @@ async fn main() -> Result<()> {
 
     let listener = TcpListener::bind(format!("{}:{}", cfg.host, cfg.port))?;
     let _server = HttpServer::new(move || {
+        let cors = Cors::default()
+            .allow_any_origin()
+            .allowed_methods(vec!["GET", "PUT", "HEAD", "DELETE"])
+            .allowed_headers(vec!["Authorization", "Content-Type"])
+            .expose_headers(vec!["Content-Length"]);
+
         App::new()
+            .wrap(cors)
             .wrap(TracingLogger::default())
             .service(
                 web::resource("/upload")
