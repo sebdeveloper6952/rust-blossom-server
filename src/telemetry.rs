@@ -7,7 +7,7 @@ use tonic::metadata::MetadataMap;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::{EnvFilter, Registry};
 
-pub fn init_tracer(dsn: String, env: String, service_name: String) -> Result<(), TraceError> {
+pub fn init_tracing(dsn: String, env: String, service_name: String) -> Result<(), TraceError> {
     let resource = Resource::new(vec![
         KeyValue::new("service.name", service_name),
         KeyValue::new("deployment.environment", env),

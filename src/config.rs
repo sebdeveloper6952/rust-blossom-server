@@ -5,6 +5,7 @@ pub struct Config {
     pub port: u16,
     pub db: DatabaseConfig,
     pub telemetry: TelemetryConfig,
+    pub cdn: CdnConfig,
 }
 
 #[derive(serde::Deserialize, Clone)]
@@ -16,6 +17,11 @@ pub struct DatabaseConfig {
 pub struct TelemetryConfig {
     pub uptrace_dsn: String,
     pub service_name: String,
+}
+
+#[derive(serde::Deserialize, Clone)]
+pub struct CdnConfig {
+    pub base_url: String,
 }
 
 #[tracing::instrument]

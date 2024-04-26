@@ -6,11 +6,11 @@ use nostr::prelude::*;
 use nostr_sdk::prelude::*;
 use rust_blossom_server::api::AuthMiddlewareFactory;
 use rust_blossom_server::api::{
-    delete, extract_payload_size_middleware, get, get_with_ext, has, has_with_ext, upload,
+    delete, extract_payload_size_middleware, get, get_with_ext, has, has_with_ext, list, upload,
 };
-use rust_blossom_server::blossom::action::Action;
+use rust_blossom_server::blossom::Action;
 use rust_blossom_server::config::get_config;
-use rust_blossom_server::telemetry::init_tracer;
+use rust_blossom_server::telemetry::init_tracing;
 use sqlx::sqlite::SqlitePoolOptions;
 use std::net::TcpListener;
 use tracing_actix_web::TracingLogger;
@@ -19,7 +19,9 @@ use tracing_actix_web::TracingLogger;
 async fn main() -> Result<()> {
     dotenvy::dotenv().expect("failed to read env file");
     let cfg = get_config().expect("failed to read config");
-    init_tracer(
+    let data_cfg = web::Data::new(cfg.clone());
+
+    init_tracing(
         cfg.telemetry.uptrace_dsn,
         cfg.env,
         cfg.telemetry.service_name,
@@ -67,7 +69,9 @@ async fn main() -> Result<()> {
                     .to(has_with_ext),
             )
             .service(web::resource("/{hash}").guard(guard::Head()).to(has))
+            .service(web::resource("/list/{pubkey}").guard(guard::Get()).to(list))
             .app_data(data_db_pool.clone())
+            .app_data(data_cfg.clone())
     })
     .listen(listener)?
     .run()

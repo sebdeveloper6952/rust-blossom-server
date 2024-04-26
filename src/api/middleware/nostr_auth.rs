@@ -1,5 +1,4 @@
-use crate::blossom::action::Action;
-use crate::blossom::auth::is_auth_event_valid;
+use crate::blossom::{is_auth_event_valid, Action};
 use ::base64::prelude::*;
 use actix_web::web::Bytes;
 use actix_web::{

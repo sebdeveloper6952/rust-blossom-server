@@ -52,6 +52,8 @@ pub async fn upload(
     )
     .await?;
 
+    // TODO: must return BlobDescriptor here
+
     Ok(HttpResponse::Ok()
         .json(serde_json::json!({"size": payload_size, "hash": hash, "type": mime_type})))
 }
