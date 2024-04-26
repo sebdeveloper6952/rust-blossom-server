@@ -72,6 +72,7 @@ async fn main() -> Result<()> {
             )
             .service(web::resource("/{hash}").guard(guard::Head()).to(has))
             .service(web::resource("/list/{pubkey}").guard(guard::Get()).to(list))
+            .app_data(web::PayloadConfig::new(2_097_152)) // 2MB
             .app_data(data_db_pool.clone())
             .app_data(data_cfg.clone())
     })
