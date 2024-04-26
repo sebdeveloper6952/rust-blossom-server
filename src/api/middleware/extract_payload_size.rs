@@ -24,47 +24,33 @@ pub async fn extract_payload_size_middleware(
 #[cfg(test)]
 mod tests {
     use super::extract_payload_size_middleware;
-    use ::base64::prelude::*;
-    use actix_web::web;
     use actix_web::App;
     use actix_web::HttpResponse;
+    use actix_web::{web, HttpMessage};
     use actix_web_lab::middleware::from_fn;
-    use nostr::prelude::*;
-    use nostr_sdk::prelude::*;
-    use std::time::Duration;
+    use std::iter;
 
     #[actix_web::test]
-    async fn test_auth_middleware() {
-        let keys = Keys::generate();
-        let auth_event = EventBuilder::new(
-            Kind::Custom(24242),
-            "auth event",
-            vec![
-                Tag::Hashtag("upload".into()),
-                Tag::Size(36194),
-                Tag::Expiration(Timestamp::now() + Duration::new(1000, 0)),
-            ],
-        )
-        .to_event(&keys)
-        .unwrap();
-
-        let auth_event_json = serde_json::to_string(&auth_event).unwrap();
-        let auth_event_base64 = BASE64_STANDARD.encode(auth_event_json);
-
+    async fn test_extract_payload_size_middleware() {
         let app = actix_web::test::init_service(
             App::new().service(
                 web::resource("/")
                     .wrap(from_fn(extract_payload_size_middleware))
-                    .route(web::get().to(HttpResponse::Ok)),
+                    .route(web::post().to(HttpResponse::Ok)),
             ),
         )
         .await;
-        let req = actix_web::test::TestRequest::get()
+
+        let dummy_size = 36194;
+        let dummy_payload: Vec<u8> = iter::repeat(0).take(dummy_size).collect();
+        let req = actix_web::test::TestRequest::post()
+            .set_payload(dummy_payload)
             .uri("/")
-            .insert_header(("Authorization", format!("Nostr {}", auth_event_base64)))
             .to_request();
         let resp = actix_web::test::call_service(&app, req).await;
+        let ext = resp.request().extensions();
+        let bytes = ext.get::<web::Bytes>().unwrap();
 
-        assert!(resp.status().is_success());
+        assert_eq!(bytes.len(), dummy_size);
     }
 }

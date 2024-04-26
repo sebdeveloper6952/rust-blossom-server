@@ -115,13 +115,16 @@ where
 #[cfg(test)]
 mod tests {
     use super::AuthMiddlewareFactory;
+    use crate::api::extract_payload_size_middleware;
     use crate::blossom::action::Action;
     use ::base64::prelude::*;
-    use actix_web::web;
     use actix_web::App;
     use actix_web::HttpResponse;
+    use actix_web::{web, HttpMessage};
+    use actix_web_lab::middleware::from_fn;
     use nostr::prelude::*;
     use nostr_sdk::prelude::*;
+    use std::iter;
     use std::time::Duration;
 
     #[actix_web::test]
@@ -146,16 +149,23 @@ mod tests {
             App::new().service(
                 web::resource("/")
                     .wrap(AuthMiddlewareFactory::new(Action::Upload))
-                    .route(web::get().to(HttpResponse::Ok)),
+                    .wrap(from_fn(extract_payload_size_middleware))
+                    .route(web::post().to(HttpResponse::Ok)),
             ),
         )
         .await;
-        let req = actix_web::test::TestRequest::get()
+
+        let dummy_size = 36194;
+        let dummy_payload: Vec<u8> = iter::repeat(0).take(dummy_size).collect();
+
+        let req = actix_web::test::TestRequest::post()
             .uri("/")
             .insert_header(("Authorization", format!("Nostr {}", auth_event_base64)))
+            .set_payload(dummy_payload)
             .to_request();
+
         let resp = actix_web::test::call_service(&app, req).await;
 
-        assert!(resp.status().is_success());
+        assert_eq!(resp.status(), 200);
     }
 }

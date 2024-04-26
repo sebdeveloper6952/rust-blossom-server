@@ -44,7 +44,7 @@ async fn main() -> Result<()> {
             .service(
                 web::resource("/delete")
                     .guard(guard::Delete())
-                    .wrap(AuthMiddlewareFactory::new(Action::Upload))
+                    .wrap(AuthMiddlewareFactory::new(Action::Delete))
                     .to(delete),
             )
             .service(
