@@ -1,4 +1,3 @@
-use crate::blossom::Action;
 use actix_web::{
     body::EitherBody,
     dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform},

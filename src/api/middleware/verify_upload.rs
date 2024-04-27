@@ -57,13 +57,11 @@ pub async fn verify_upload(
 
 #[cfg(test)]
 mod tests {
-    use super::AuthMiddlewareFactory;
-    use crate::api::extract_payload_size_middleware;
-    use crate::blossom::action::Action;
+    use super::verify_upload;
     use ::base64::prelude::*;
+    use actix_web::web;
     use actix_web::App;
     use actix_web::HttpResponse;
-    use actix_web::{web, HttpMessage};
     use actix_web_lab::middleware::from_fn;
     use nostr::prelude::*;
     use nostr_sdk::prelude::*;
@@ -71,7 +69,7 @@ mod tests {
     use std::time::Duration;
 
     #[actix_web::test]
-    async fn test_auth_middleware() {
+    async fn test_verify_upload_middleware() {
         let keys = Keys::generate();
         let auth_event = EventBuilder::new(
             Kind::Custom(24242),
@@ -91,8 +89,7 @@ mod tests {
         let app = actix_web::test::init_service(
             App::new().service(
                 web::resource("/")
-                    .wrap(AuthMiddlewareFactory::new(Action::Upload))
-                    .wrap(from_fn(extract_payload_size_middleware))
+                    .wrap(from_fn(verify_upload))
                     .route(web::post().to(HttpResponse::Ok)),
             ),
         )

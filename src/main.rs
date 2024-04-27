@@ -5,10 +5,9 @@ use actix_web_lab::middleware::from_fn;
 use nostr::prelude::*;
 use nostr_sdk::prelude::*;
 use rust_blossom_server::api::{
-    delete, extract_payload_size_middleware, get, get_with_ext, has, has_with_ext, index_file,
-    list, upload, verify_upload, PubkeyWhitelistMiddlewareFactory,
+    delete, get, get_with_ext, has, has_with_ext, index_file, list, upload, verify_delete,
+    verify_upload, PubkeyWhitelistMiddlewareFactory,
 };
-use rust_blossom_server::blossom::Action;
 use rust_blossom_server::config::get_config;
 use rust_blossom_server::telemetry::init_tracing;
 use sqlx::sqlite::SqlitePoolOptions;
@@ -60,7 +59,7 @@ async fn main() -> Result<()> {
             .service(
                 web::resource("/delete")
                     .guard(guard::Delete())
-                    .wrap(from_fn(verify_upload))
+                    .wrap(from_fn(verify_delete))
                     .to(delete),
             )
             .service(
