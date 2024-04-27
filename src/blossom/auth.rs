@@ -72,6 +72,7 @@ pub fn is_auth_event_valid(
                     match tag_value.to_string().parse::<usize>() {
                         Ok(tag_size_value) => {
                             if tag_size_value != payload_size {
+                                println!("expected: {}, found: {}", payload_size, tag_size_value);
                                 return Err("payload size does not match size tag".into());
                             }
                         }

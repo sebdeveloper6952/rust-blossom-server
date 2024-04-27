@@ -1,114 +1,58 @@
 use crate::blossom::{is_auth_event_valid, Action};
 use ::base64::prelude::*;
+use actix_web::body::MessageBody;
+use actix_web::error::ErrorUnauthorized;
 use actix_web::web::Bytes;
 use actix_web::{
-    body::EitherBody,
-    dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform},
-    Error, HttpMessage, HttpResponse,
+    dev::{ServiceRequest, ServiceResponse},
+    Error, HttpMessage,
 };
-use futures_util::future::{FutureExt, LocalBoxFuture};
+use actix_web_lab::middleware::Next;
 use nostr::event::Event;
 use nostr_sdk::JsonUtil;
-use std::future::{ready, Ready};
 
-pub struct AuthMiddleware<S> {
-    action: Action,
-    service: S,
+fn error_out(msg: &str) -> Error {
+    return ErrorUnauthorized(serde_json::json!({"message": msg}));
 }
 
-impl<S, B> Service<ServiceRequest> for AuthMiddleware<S>
-where
-    S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error>,
-    S::Future: 'static,
-    B: 'static,
-{
-    type Response = ServiceResponse<EitherBody<B>>;
-    type Error = Error;
-    type Future = LocalBoxFuture<'static, Result<Self::Response, Self::Error>>;
-
-    forward_ready!(service);
-
-    fn call(&self, req: ServiceRequest) -> Self::Future {
-        let srv_req = ServiceRequest::from_request(req.request().clone());
-        let mut req_ext = srv_req.extensions_mut();
-        let payload_size = req_ext.get::<Bytes>();
-
-        if payload_size.is_none() {
-            let http_res = HttpResponse::InternalServerError().finish();
-            let res = ServiceResponse::new(req.request().clone(), http_res);
-            return (async move { Ok(res.map_into_right_body()) }).boxed_local();
-        }
-
-        let error_out = |msg: &str| -> Self::Future {
-            let http_res = HttpResponse::Unauthorized().json(serde_json::json!({"message": msg}));
-            let res = ServiceResponse::new(req.request().clone(), http_res);
-            (async move { Ok(res.map_into_right_body()) }).boxed_local()
-        };
-
-        let header = req.headers().get("Authorization");
-        if header.is_none() {
-            return error_out("missing Auth event");
-        }
-
-        let header_value = header.unwrap().to_str();
-        if header_value.is_err() {
-            return error_out("invalid Auth event");
-        }
-
-        let base64_decoded_event = BASE64_STANDARD.decode(&header_value.unwrap()[6..]);
-        if base64_decoded_event.is_err() {
-            return error_out("invalid Auth event: failed base64 decoding");
-        }
-
-        let event_result = Event::from_json(base64_decoded_event.unwrap());
-        if event_result.is_err() {
-            return error_out("invalid Auth event: failed json decoding");
-        }
-        let event = event_result.unwrap();
-
-        match is_auth_event_valid(&event, self.action.clone(), payload_size.unwrap().len()) {
-            Ok(_) => {}
-            Err(e) => return error_out(&e),
-        }
-
-        req_ext.insert(event.pubkey);
-
-        let fut = self.service.call(req);
-        Box::pin(async move {
-            let res = fut.await?;
-            Ok(res.map_into_left_body())
-        })
+pub async fn verify_upload(
+    mut req: ServiceRequest,
+    next: Next<impl MessageBody>,
+) -> Result<ServiceResponse<impl MessageBody>, Error> {
+    let bytes = req.extract::<Bytes>().await;
+    if bytes.is_err() {
+        return Err(error_out("no payload found"));
     }
-}
 
-pub struct AuthMiddlewareFactory {
-    action: Action,
-}
-
-impl AuthMiddlewareFactory {
-    pub fn new(action: Action) -> Self {
-        Self { action }
+    let header = req.headers().get("Authorization");
+    if header.is_none() {
+        return Err(error_out("missing Authorization header"));
     }
-}
 
-impl<S, B> Transform<S, ServiceRequest> for AuthMiddlewareFactory
-where
-    S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error> + 'static,
-    S::Future: 'static,
-    B: 'static,
-{
-    type Response = ServiceResponse<EitherBody<B>>;
-    type Error = Error;
-    type InitError = ();
-    type Transform = AuthMiddleware<S>;
-    type Future = Ready<Result<Self::Transform, Self::InitError>>;
-
-    fn new_transform(&self, service: S) -> Self::Future {
-        ready(Ok(AuthMiddleware {
-            action: self.action.clone(),
-            service,
-        }))
+    let header_value = header.unwrap().to_str();
+    if header_value.is_err() {
+        return Err(error_out("invalid Authorization header"));
     }
+
+    let base64_decoded_event = BASE64_STANDARD.decode(&header_value.unwrap()[6..]);
+    if base64_decoded_event.is_err() {
+        return Err(error_out("invalid Auth event: failed base64 decoding"));
+    }
+
+    let event_result = Event::from_json(base64_decoded_event.unwrap());
+    if event_result.is_err() {
+        return Err(error_out("invalid Auth event: failed json decoding"));
+    }
+    let event = event_result.unwrap();
+
+    match is_auth_event_valid(&event, Action::Upload, bytes.unwrap().len()) {
+        Ok(_) => {}
+        Err(e) => return Err(error_out(&e)),
+    }
+
+    req.extensions_mut().insert(event.pubkey);
+
+    next.call(req).await
 }
 
 #[cfg(test)]

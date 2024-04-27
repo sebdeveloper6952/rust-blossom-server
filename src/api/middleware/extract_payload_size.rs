@@ -11,7 +11,9 @@ pub async fn extract_payload_size_middleware(
     mut req: ServiceRequest,
     next: Next<impl MessageBody>,
 ) -> Result<ServiceResponse<impl MessageBody>, Error> {
-    match req.extract::<Bytes>().await {
+    let bytes = req.extract::<Bytes>().await;
+
+    match bytes {
         Ok(bytes) => {
             req.extensions_mut().insert(bytes);
         }
