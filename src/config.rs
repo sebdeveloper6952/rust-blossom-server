@@ -22,6 +22,7 @@ pub struct TelemetryConfig {
 #[derive(serde::Deserialize, Clone)]
 pub struct CdnConfig {
     pub base_url: String,
+    pub whitelisted_pubkeys: Vec<String>,
 }
 
 #[tracing::instrument]

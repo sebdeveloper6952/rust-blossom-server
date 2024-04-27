@@ -33,8 +33,10 @@ async fn main() -> Result<()> {
     sqlx::migrate!().run(&db_pool).await?;
     let data_db_pool = web::Data::new(db_pool);
 
-    let whitelisted_pubkeys: HashSet<&str> =
-        HashSet::from(["1bbd7fdf68eaf5c19446c3aaf63b39dd4a8e33548bc96f6bd239a4124d8f229e"]);
+    let mut whitelisted_pubkeys = HashSet::new();
+    for pk in cfg.cdn.whitelisted_pubkeys {
+        whitelisted_pubkeys.insert(pk);
+    }
     let data_pks = web::Data::new(whitelisted_pubkeys);
 
     let listener = TcpListener::bind(format!("{}:{}", cfg.host, cfg.port))?;
@@ -57,7 +59,7 @@ async fn main() -> Result<()> {
                     .to(upload),
             )
             .service(
-                web::resource("/delete")
+                web::resource("/{hash}")
                     .guard(guard::Delete())
                     .wrap(from_fn(verify_delete))
                     .to(delete),

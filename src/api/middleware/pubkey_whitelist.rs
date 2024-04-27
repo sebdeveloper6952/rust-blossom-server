@@ -33,11 +33,15 @@ where
         let ext = srv.extensions();
         let authed_pubkey = ext.get::<PublicKey>();
         if authed_pubkey.is_none() {
-            return (async move { Err(ErrorInternalServerError("failed to find a pubkey")) })
-                .boxed_local();
+            return (async move {
+                Err(ErrorInternalServerError(
+                    serde_json::json!({"message": "failed to find pubkey in request context"}),
+                ))
+            })
+            .boxed_local();
         }
 
-        let whitelisted_pks = req.app_data::<Data<HashSet<&str>>>();
+        let whitelisted_pks = req.app_data::<Data<HashSet<String>>>();
         if whitelisted_pks.is_some() {
             let pks = whitelisted_pks.unwrap();
             let pk = authed_pubkey.unwrap().to_string();

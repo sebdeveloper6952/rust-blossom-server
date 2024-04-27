@@ -45,12 +45,14 @@ pub async fn verify_upload(
     }
     let event = event_result.unwrap();
 
-    match is_auth_event_valid(&event, Action::Upload, bytes.unwrap().len()) {
+    let bytes = bytes.unwrap();
+    match is_auth_event_valid(&event, Action::Upload, bytes.len()) {
         Ok(_) => {}
         Err(e) => return Err(error_out(&e)),
     }
 
     req.extensions_mut().insert(event.pubkey);
+    req.extensions_mut().insert(bytes);
 
     next.call(req).await
 }
