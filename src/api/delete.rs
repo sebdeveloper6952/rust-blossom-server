@@ -1,5 +1,8 @@
-use actix_web::{http::StatusCode, web, HttpResponse, ResponseError};
-use nostr_sdk::PublicKey;
+use actix_web::{
+    http::StatusCode,
+    web::{Data, Path, ReqData},
+    HttpResponse, ResponseError,
+};
 use sqlx::{sqlite::SqliteQueryResult, SqlitePool};
 use tracing::instrument;
 
@@ -24,9 +27,9 @@ impl ResponseError for DeleteError {
 
 #[instrument(skip(hash, db))]
 pub async fn delete(
-    hash: web::Path<String>,
-    pubkey: web::Data<PublicKey>,
-    db: web::Data<SqlitePool>,
+    hash: Path<String>,
+    pubkey: ReqData<nostr::PublicKey>,
+    db: Data<SqlitePool>,
 ) -> Result<HttpResponse, DeleteError> {
     let blob = db_get_blob(&db, &hash).await?;
 
