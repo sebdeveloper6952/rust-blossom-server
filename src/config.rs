@@ -15,6 +15,7 @@ pub struct DatabaseConfig {
 
 #[derive(serde::Deserialize, Clone)]
 pub struct TelemetryConfig {
+    pub disable: bool,
     pub uptrace_dsn: String,
     pub service_name: String,
 }
