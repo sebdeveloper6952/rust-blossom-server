@@ -1,5 +1,4 @@
-use opentelemetry::trace::TraceError;
-use opentelemetry::KeyValue;
+use opentelemetry::{trace::TraceError, KeyValue};
 use opentelemetry_otlp::WithExportConfig;
 use opentelemetry_sdk::Resource;
 use std::time::Duration;
@@ -8,6 +7,10 @@ use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::{EnvFilter, Registry};
 
 pub fn init_tracing(dsn: String, env: String, service_name: String) -> Result<(), TraceError> {
+    return init_uptrace_tracing(dsn, env, service_name);
+}
+
+fn init_uptrace_tracing(dsn: String, env: String, service_name: String) -> Result<(), TraceError> {
     let resource = Resource::new(vec![
         KeyValue::new("service.name", service_name),
         KeyValue::new("deployment.environment", env),
@@ -36,12 +39,16 @@ pub fn init_tracing(dsn: String, env: String, service_name: String) -> Result<()
         .install_batch(opentelemetry_sdk::runtime::Tokio)?;
 
     let telemetry_layer = tracing_opentelemetry::layer().with_tracer(tracer);
+
+    // filter log by level set on env, or INFO and above by default
     let env_filter_layer =
         EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new(String::from("info")));
+
     let subscriber = Registry::default()
         .with(env_filter_layer)
         .with(telemetry_layer);
-    tracing::subscriber::set_global_default(subscriber).expect("setting tracing default failed");
+    tracing::subscriber::set_global_default(subscriber)
+        .expect("setting tracing global default failed");
 
     Ok(())
 }

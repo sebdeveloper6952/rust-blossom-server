@@ -48,8 +48,8 @@ async fn main() -> Result<()> {
             .expose_headers(vec!["Content-Length"]);
 
         App::new()
-            .wrap(cors)
             .wrap(TracingLogger::default())
+            .wrap(cors)
             .route("/", web::get().to(index_file))
             .service(
                 web::resource("/upload")
