@@ -24,6 +24,7 @@ tracing-actix-web = "0.7"
 opentelemetry = { version = "0.22", features = ["metrics"] }
 opentelemetry_sdk = { version = "0.22", features = ["rt-tokio", "metrics"] }
 opentelemetry-otlp = { version = "0.15", features = ["tonic", "metrics", "tls", "tls-roots"] }
+opentelemetry-stdout = { version = "0.3.0", features = ["trace"] }
 dotenvy = "0.15.7"
 thiserror = "1.0.59"
 anyhow = "1.0.82"
@@ -34,6 +35,7 @@ actix-web-lab = "0.20.2"
 sha256 = "1.5.0"
 infer = "0.15"
 actix-cors = "0.7.0"
+tracing-bunyan-formatter = "0.3"
 
 [dev-dependencies]
 claims = "0.7"

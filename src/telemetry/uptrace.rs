@@ -1,4 +1,4 @@
-use opentelemetry::{trace::TraceError, KeyValue};
+use opentelemetry::KeyValue;
 use opentelemetry_otlp::WithExportConfig;
 use opentelemetry_sdk::Resource;
 use std::time::Duration;
@@ -6,11 +6,11 @@ use tonic::metadata::MetadataMap;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::{EnvFilter, Registry};
 
-pub fn init_tracing(dsn: String, env: String, service_name: String) -> Result<(), TraceError> {
-    return init_uptrace_tracing(dsn, env, service_name);
-}
-
-fn init_uptrace_tracing(dsn: String, env: String, service_name: String) -> Result<(), TraceError> {
+pub(crate) fn init_uptrace_tracing(
+    dsn: String,
+    env: String,
+    service_name: String,
+) -> Result<(), String> {
     let resource = Resource::new(vec![
         KeyValue::new("service.name", service_name),
         KeyValue::new("deployment.environment", env),
@@ -36,7 +36,8 @@ fn init_uptrace_tracing(dsn: String, env: String, service_name: String) -> Resul
                 .build(),
         )
         .with_trace_config(opentelemetry_sdk::trace::config().with_resource(resource))
-        .install_batch(opentelemetry_sdk::runtime::Tokio)?;
+        .install_batch(opentelemetry_sdk::runtime::Tokio)
+        .unwrap();
 
     let telemetry_layer = tracing_opentelemetry::layer().with_tracer(tracer);
 
