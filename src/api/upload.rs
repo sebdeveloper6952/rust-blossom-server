@@ -55,7 +55,7 @@ pub async fn upload(
         _ => String::from("application/octet-stream"),
     };
 
-    if !allowed_mime_types.contains(&MimeType(mime_type.clone())) {
+    if !is_mime_type_allowed(&allowed_mime_types, &mime_type) {
         return Err(UploadError::MimeTypeNotAllowed);
     }
 
@@ -122,4 +122,8 @@ async fn db_insert_blob(
     )
     .fetch_one(db)
     .await
+}
+
+fn is_mime_type_allowed(allowed: &HashSet<MimeType>, mime_type: &str) -> bool {
+    return allowed.len() == 0 || allowed.contains(&MimeType(String::from(mime_type)));
 }
