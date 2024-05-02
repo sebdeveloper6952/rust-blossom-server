@@ -5,9 +5,15 @@ Simple implementation of a blossom server. I'm learning to use rust, any feedbac
 _This software is in alpha, don't use in production._
 
 ### TODO
-- [ ] performance testing of sqlite blob type
+- Performance
   - [ ] large files, in the gigabyte range
   - [ ] millions of blobs stored
-- [ ] tracing config
-  - [ ] turn off
-  - [ ] output to stdout
+  - [ ] streaming response for large files
+- Tracing
+  - [x] turn off
+  - [x] output to stdout
+  - [x] open telemetry to otlp exporter with uptrace
+- configuration
+  - [ ] able to specify max upload size
+  - [ ] able to specify min upload size
+  - [ ] able to specify allowed mime types

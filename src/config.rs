@@ -15,7 +15,7 @@ pub struct DatabaseConfig {
 
 #[derive(serde::Deserialize, Clone)]
 pub struct TelemetryConfig {
-    pub disable: bool,
+    pub kind: TelemetryKind,
     pub uptrace_dsn: String,
     pub service_name: String,
 }
@@ -24,6 +24,23 @@ pub struct TelemetryConfig {
 pub struct CdnConfig {
     pub base_url: String,
     pub whitelisted_pubkeys: Vec<String>,
+}
+
+#[derive(Clone, Debug, serde::Deserialize)]
+pub enum TelemetryKind {
+    Stdout,
+    Uptrace,
+    None,
+}
+
+impl From<&str> for TelemetryKind {
+    fn from(val: &str) -> Self {
+        match val {
+            "stdout" => Self::Stdout,
+            "uptrace" => Self::Uptrace,
+            _ => Self::None,
+        }
+    }
 }
 
 #[tracing::instrument]

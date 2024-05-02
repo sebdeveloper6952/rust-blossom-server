@@ -21,13 +21,12 @@ async fn main() -> Result<()> {
     let cfg = get_config().expect("failed to read config");
     let data_cfg = web::Data::new(cfg.clone());
 
-    if !cfg.telemetry.disable {
-        init_tracing(
-            cfg.telemetry.uptrace_dsn,
-            cfg.env,
-            cfg.telemetry.service_name,
-        )?;
-    }
+    init_tracing(
+        cfg.telemetry.uptrace_dsn,
+        cfg.env,
+        cfg.telemetry.service_name,
+        cfg.telemetry.kind,
+    )?;
 
     let db_pool = SqlitePoolOptions::new()
         .connect_lazy(&cfg.db.path)
