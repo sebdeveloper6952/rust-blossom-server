@@ -1,11 +1,12 @@
 use crate::blossom::{is_auth_event_valid, Action};
+use crate::config::Config;
 use ::base64::prelude::*;
 use actix_web::body::MessageBody;
 use actix_web::error::ErrorUnauthorized;
 use actix_web::web::Bytes;
 use actix_web::{
     dev::{ServiceRequest, ServiceResponse},
-    Error, HttpMessage,
+    web, Error, HttpMessage,
 };
 use actix_web_lab::middleware::Next;
 use nostr::event::Event;
@@ -21,7 +22,16 @@ pub async fn verify_upload(
 ) -> Result<ServiceResponse<impl MessageBody>, Error> {
     let bytes = req.extract::<Bytes>().await;
     if bytes.is_err() {
-        return Err(error_out("no payload found"));
+        let cfg = req.app_data::<web::Data<Config>>();
+        let error_msg = match cfg {
+            Some(cfg) => format!(
+                "no payload found or it doesn't fit size range: min_bytes: {}, max_bytes: {}",
+                cfg.cdn.min_upload_size_bytes, cfg.cdn.max_upload_size_bytes,
+            ),
+            None => String::from("no payload found"),
+        };
+
+        return Err(error_out(&error_msg));
     }
 
     let header = req.headers().get("Authorization");

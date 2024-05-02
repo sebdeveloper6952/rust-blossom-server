@@ -24,6 +24,9 @@ pub struct TelemetryConfig {
 pub struct CdnConfig {
     pub base_url: String,
     pub whitelisted_pubkeys: Vec<String>,
+    pub max_upload_size_bytes: u64,
+    pub min_upload_size_bytes: u64,
+    pub allowed_mime_types: Vec<String>,
 }
 
 #[derive(Clone, Debug, serde::Deserialize)]
