@@ -50,9 +50,25 @@ impl From<&str> for TelemetryKind {
 pub fn get_config() -> Result<Config, config::ConfigError> {
     let base_path = std::env::current_dir().expect("config failed to read base path");
     let cfg_dir = base_path.join("config");
-    let cfg = config::Config::builder()
+    let cfg_builder = config::Config::builder()
         .add_source(config::File::from(cfg_dir.join("config.yml")))
         .build()?;
 
-    cfg.try_deserialize::<Config>()
+    let cfg = cfg_builder.try_deserialize::<Config>()?;
+
+    if !are_mime_types_valid(&cfg) {
+        return Err(config::ConfigError::Message("invalid mime types".into()));
+    }
+
+    Ok(cfg)
+}
+
+fn are_mime_types_valid(cfg: &Config) -> bool {
+    for mime_type in &cfg.cdn.allowed_mime_types {
+        if !infer::is_mime_supported(&mime_type) {
+            return false;
+        }
+    }
+
+    true
 }

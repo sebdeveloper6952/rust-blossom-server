@@ -9,6 +9,7 @@ use rust_blossom_server::api::{
     verify_upload, PubkeyWhitelistMiddlewareFactory,
 };
 use rust_blossom_server::config::get_config;
+use rust_blossom_server::mime_type::MimeType;
 use rust_blossom_server::telemetry::init_tracing;
 use sqlx::sqlite::SqlitePoolOptions;
 use std::collections::HashSet;
@@ -39,6 +40,12 @@ async fn main() -> Result<()> {
         whitelisted_pubkeys.insert(pk);
     }
     let data_pks = web::Data::new(whitelisted_pubkeys);
+
+    let mut allowed_mime_types = HashSet::new();
+    for mime_type in cfg.cdn.allowed_mime_types {
+        allowed_mime_types.insert(MimeType(mime_type));
+    }
+    let data_mime_types = web::Data::new(allowed_mime_types);
 
     let listener = TcpListener::bind(format!("{}:{}", cfg.host, cfg.port))?;
     HttpServer::new(move || {
@@ -84,6 +91,7 @@ async fn main() -> Result<()> {
             .app_data(data_db_pool.clone())
             .app_data(data_cfg.clone())
             .app_data(data_pks.clone())
+            .app_data(data_mime_types.clone())
     })
     .listen(listener)?
     .run()

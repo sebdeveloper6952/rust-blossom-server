@@ -1,16 +1,17 @@
 use crate::{
     api::{db_get_blob, GetBlob},
     blossom::BlobDescriptor,
+    mime_type::MimeType,
 };
 use actix_web::{
-    http::StatusCode,
+    body::BoxBody,
     web::{Bytes, Data, ReqData},
     HttpResponse, ResponseError,
 };
 use chrono::Utc;
 use sha256::digest;
 use sqlx::SqlitePool;
-use std::convert::TryFrom;
+use std::{collections::HashSet, convert::TryFrom};
 use tracing::instrument;
 
 use crate::config::Config;
@@ -21,23 +22,29 @@ pub enum UploadError {
     DbInsertError(#[from] sqlx::Error),
     #[error("failed to extract payload size")]
     ExtractPayloadSizeError,
+    #[error("mime type not allowed")]
+    MimeTypeNotAllowed,
 }
 
 impl ResponseError for UploadError {
-    fn status_code(&self) -> StatusCode {
+    fn error_response(&self) -> HttpResponse<BoxBody> {
         match self {
-            UploadError::DbInsertError(_) => StatusCode::INTERNAL_SERVER_ERROR,
-            UploadError::ExtractPayloadSizeError => StatusCode::INTERNAL_SERVER_ERROR,
+            UploadError::DbInsertError(_) | UploadError::ExtractPayloadSizeError => {
+                HttpResponse::InternalServerError().finish()
+            }
+            UploadError::MimeTypeNotAllowed => HttpResponse::BadRequest()
+                .json(serde_json::json!({"message": "mime type not allowed"})),
         }
     }
 }
 
-#[instrument(skip(payload, db, cfg))]
+#[instrument(skip(payload, db, cfg, allowed_mime_types))]
 pub async fn upload(
     pubkey: ReqData<nostr::PublicKey>,
     payload: ReqData<Bytes>,
     db: Data<SqlitePool>,
     cfg: Data<Config>,
+    allowed_mime_types: Data<HashSet<MimeType>>,
 ) -> Result<HttpResponse, UploadError> {
     let payload_size =
         i32::try_from(payload.len()).map_err(|_| UploadError::ExtractPayloadSizeError)?;
@@ -47,6 +54,11 @@ pub async fn upload(
         Some(t) => t.to_string(),
         _ => String::from("application/octet-stream"),
     };
+
+    if !allowed_mime_types.contains(&MimeType(mime_type.clone())) {
+        return Err(UploadError::MimeTypeNotAllowed);
+    }
+
     let hash = digest(&bytes_vec);
 
     match db_get_blob(&db, &hash).await {

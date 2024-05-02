@@ -1,0 +1,15 @@
+env: "LOCAL"
+host: 127.0.0.1
+port: 8000
+db:
+  path: "./db/db.db"
+telemetry:
+  kind: "stdout"
+  uptrace_dsn: ""
+  service_name: "my-cdn"
+cdn:
+  base_url: "http://localhost:8000"
+  whitelisted_pubkeys: []
+  max_upload_size_bytes: 2097152
+  min_upload_size_bytes: 0
+  allowed_mime_types: []
