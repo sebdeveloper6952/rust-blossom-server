@@ -18,7 +18,6 @@ use tracing_actix_web::TracingLogger;
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    dotenvy::dotenv().expect("failed to read env file");
     let cfg = get_config().expect("failed to read config");
     let data_cfg = web::Data::new(cfg.clone());
 
